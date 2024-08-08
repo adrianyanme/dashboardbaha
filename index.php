@@ -17,6 +17,45 @@
   <link rel="stylesheet" href="plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
   <link rel="stylesheet" href="plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
   <link rel="stylesheet" href="plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+  <!-- Custom CSS for room layout -->
+  <style>
+    .room-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .room {
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      width: 200px;
+      height: 200px;
+      position: relative;
+      background: #f4f6f9;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .room h5 {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      margin: 0;
+      font-size: 1em;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 5px;
+      border-radius: 5px;
+      color: #000; /* Set the text color to black */
+    }
+    .door {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2em;
+      color: #4caf50; /* Default color for 'open' status */
+    }
+    .door.closed {
+      color: #f44336; /* Color for 'closed' status */
+    }
+  </style>
 </head>
 <body class="hold-transition dark-mode sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
 <div class="wrapper">
@@ -48,36 +87,36 @@
           <div class="col-12">
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">Data Perangkat</h3>
+                <h3 class="card-title">Device Status</h3>
               </div>
               <!-- /.card-header -->
               <div class="card-body">
-                <table id="deviceTable" class="table table-bordered table-striped">
+                <div id="deviceRooms" class="room-container">
+                  <!-- Device rooms will be appended here -->
+                </div>
+              </div>
+              <!-- /.card-body -->
+            </div>
+            <!-- /.card -->
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Device Logs</h3>
+              </div>
+              <!-- /.card-header -->
+              <div class="card-body">
+                <table id="logTable" class="table table-bordered table-striped">
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Serial Number</th>
+                      <th>Username</th>
                       <th>Nama Perangkat</th>
-                      <th>Status Perangkat</th>
+                      <th>Action</th>
                       <th>Created At</th>
-                      <th>Updated At</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <?php
-                    $json = file_get_contents('http://baha.adrianyan.tech:8000/api/relay/all-devices');
-                    $data = json_decode($json, true);
-                    foreach ($data['devices'] as $device) {
-                      echo '<tr>';
-                      echo '<td>' . $device['id'] . '</td>';
-                      echo '<td>' . $device['serial_number'] . '</td>';
-                      echo '<td>' . $device['nama_perangkat'] . '</td>';
-                      echo '<td>' . $device['status_perangkat'] . '</td>';
-                      echo '<td>' . $device['created_at'] . '</td>';
-                      echo '<td>' . $device['updated_at'] . '</td>';
-                      echo '</tr>';
-                    }
-                    ?>
+                  <tbody id="logTableBody">
+                    <!-- Log data will be appended here -->
                   </tbody>
                 </table>
               </div>
@@ -137,10 +176,50 @@
 
 <script>
   $(function () {
-    $("#deviceTable").DataTable({
-      "responsive": true, "lengthChange": false, "autoWidth": false,
-      "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
-    }).buttons().container().appendTo('#deviceTable_wrapper .col-md-6:eq(0)');
+    // Auto refresh every 2 seconds for device status
+    setInterval(function() {
+      $.ajax({
+        url: 'http://165.22.101.164:8000/api/relay/all-devices',
+        method: 'GET',
+        success: function(data) {
+          var container = $('#deviceRooms');
+          container.empty(); // Clear existing content
+
+          data.devices.forEach(function(device) {
+            var icon = device.status_perangkat === 'open' ? 'fa-door-open' : 'fa-door-closed';
+            var doorClass = device.status_perangkat === 'open' ? '' : 'closed';
+            var room = '<div class="room">' +
+                          '<h5>' + device.nama_perangkat + '</h5>' +
+                          '<div class="door ' + doorClass + '"><i class="fas ' + icon + '"></i></div>' +
+                        '</div>';
+            container.append(room);
+          });
+        }
+      });
+    }, 2000); // 2000 milliseconds = 2 seconds
+
+    // Auto refresh every 2 seconds for device log
+    setInterval(function() {
+      $.ajax({
+        url: 'http://165.22.101.164:8000/api/admin/logs',
+        method: 'GET',
+        success: function(data) {
+          var tbody = $('#logTableBody');
+          tbody.empty(); // Clear existing rows
+
+          data.logs.forEach(function(log) {
+            var row = '<tr>' +
+                      '<td>' + log.id + '</td>' +
+                      '<td>' + log.username + '</td>' +
+                      '<td>' + log.nama_perangkat + '</td>' +
+                      '<td>' + log.action + '</td>' +
+                      '<td>' + log.created_at + '</td>' +
+                      '</tr>';
+            tbody.append(row);
+          });
+        }
+      });
+    }, 2000); // 2000 milliseconds = 2 seconds
   });
 </script>
 </body>

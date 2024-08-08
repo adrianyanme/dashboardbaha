@@ -70,7 +70,7 @@
                   </thead>
                   <tbody>
                     <?php
-                    $json = file_get_contents('http://baha.adrianyan.tech:8000/api/masters');
+                    $json = file_get_contents('http://165.22.101.164:8000/api/masters');
                     $data = json_decode($json, true);
                     foreach ($data['data'] as $user) {
                       echo '<tr>';
