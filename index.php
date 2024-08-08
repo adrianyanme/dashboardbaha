@@ -102,6 +102,10 @@
             <div class="card">
               <div class="card-header">
                 <h3 class="card-title">Device Logs</h3>
+                <div class="card-tools">
+                  <button id="sortNewest" class="btn btn-primary btn-sm">Sort by Newest</button>
+                  <button id="sortOldest" class="btn btn-secondary btn-sm">Sort by Oldest</button>
+                </div>
               </div>
               <!-- /.card-header -->
               <div class="card-body">
@@ -198,8 +202,7 @@
       });
     }, 2000); // 2000 milliseconds = 2 seconds
 
-    // Auto refresh every 2 seconds for device log
-    setInterval(function() {
+    function fetchLogs(order = 'desc') {
       $.ajax({
         url: 'http://165.22.101.164:8000/api/admin/logs',
         method: 'GET',
@@ -207,7 +210,12 @@
           var tbody = $('#logTableBody');
           tbody.empty(); // Clear existing rows
 
-          data.logs.forEach(function(log) {
+          var logs = data.logs;
+          if (order === 'asc') {
+            logs = logs.reverse();
+          }
+
+          logs.forEach(function(log) {
             var row = '<tr>' +
                       '<td>' + log.id + '</td>' +
                       '<td>' + log.username + '</td>' +
@@ -219,6 +227,23 @@
           });
         }
       });
+    }
+
+    // Initial fetch with default order (newest first)
+    fetchLogs();
+
+    // Event listeners for sorting buttons
+    $('#sortNewest').on('click', function() {
+      fetchLogs('desc');
+    });
+
+    $('#sortOldest').on('click', function() {
+      fetchLogs('asc');
+    });
+
+    // Auto refresh every 2 seconds for device log
+    setInterval(function() {
+      fetchLogs();
     }, 2000); // 2000 milliseconds = 2 seconds
   });
 </script>
